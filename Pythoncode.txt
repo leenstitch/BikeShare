@@ -1,0 +1,195 @@
+import pandas as pd
+
+# ============================
+# ملفات البيانات لكل مدينة
+# ============================
+CITY_DATA = {
+    'chicago': 'chicago.csv',
+    'new york city': 'new_york_city.csv',
+    'washington': 'washington.csv'
+}
+
+# ============================
+# تفاعل المستخدم
+# ============================
+def get_city():
+    """Gets user input for city and validates it."""
+    while True:
+        city = input("Choose a city (Chicago, New York City, Washington): ").lower()
+        if city in CITY_DATA:
+            return city
+        print("Invalid input. Please enter a valid city name.")
+
+def get_month():
+    """Gets user input for month and validates it."""
+    months = ['january', 'february', 'march', 'april', 'may', 'june', 'all']
+    while True:
+        month = input("Choose a month (January to June) or 'all' for no filter: ").lower()
+        if month in months:
+            return month
+        print("Invalid input. Please enter a valid month.")
+
+def get_day():
+    """Gets user input for day of week and validates it."""
+    days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday', 'all']
+    while True:
+        day = input("Choose a day of the week or 'all' for no filter: ").lower()
+        if day in days:
+            return day
+        print("Invalid input. Please enter a valid day.")
+
+# ============================
+# تحميل البيانات
+# ============================
+def load_data(city, month='all', day='all'):
+    """
+    Loads data for the specified city and filters by month and day if applicable.
+    Returns a DataFrame or None if file not found.
+    """
+    try:
+        df = pd.read_csv(CITY_DATA[city])
+    except FileNotFoundError:
+        print(f"Error: File for {city} not found.")
+        return None
+
+    # تحويل الأعمدة لتواريخ واستخراج معلومات الوقت
+    df['Start Time'] = pd.to_datetime(df['Start Time'], errors='coerce')
+    df['month'] = df['Start Time'].dt.month
+    df['day_of_week'] = df['Start Time'].dt.day_name()
+    df['hour'] = df['Start Time'].dt.hour
+
+    # تصفية البيانات حسب الشهر
+    if month != 'all':
+        months = ['january', 'february', 'march', 'april', 'may', 'june']
+        month_index = months.index(month) + 1
+        df = df[df['month'] == month_index]
+
+    # تصفية البيانات حسب اليوم
+    if day != 'all':
+        df = df[df['day_of_week'].str.lower() == day]
+
+    return df
+
+# ============================
+# إحصائيات الوقت
+# ============================
+def time_stats(df):
+    """Displays statistics on the most frequent times of travel."""
+    print("\n=== Most Frequent Times of Travel ===")
+    month_names = ['January', 'February', 'March', 'April', 'May', 'June']
+
+    if df.empty:
+        print("No data available.")
+        return
+
+    common_month = df['month'].mode()[0]
+    print(f"Most common month: {month_names[common_month - 1]}")
+
+    common_day = df['day_of_week'].mode()[0]
+    print(f"Most common day of week: {common_day}")
+
+    common_hour = df['hour'].mode()[0]
+    print(f"Most common start hour: {common_hour}")
+
+# ============================
+# إحصائيات المحطات والرحلات
+# ============================
+def station_stats(df):
+    """Displays statistics on the most popular stations and trip."""
+    print("\n=== Most Popular Stations and Trip ===")
+    if df.empty:
+        print("No data available.")
+        return
+
+    print(f"Most common start station: {df['Start Station'].mode()[0]}")
+    print(f"Most common end station: {df['End Station'].mode()[0]}")
+
+    # إنشاء عمود جديد للرحلة المشتركة
+    df = df.copy()  # لتجنب SettingWithCopyWarning
+    df['trip'] = df['Start Station'] + " -> " + df['End Station']
+    print(f"Most common trip: {df['trip'].mode()[0]}")
+
+# ============================
+# مدة الرحلات
+# ============================
+def trip_duration_stats(df):
+    """Displays statistics on the total and average trip duration."""
+    print("\n=== Trip Duration ===")
+    if df.empty:
+        print("No data available.")
+        return
+
+    total_time = df['Trip Duration'].sum()
+    mean_time = df['Trip Duration'].mean()
+
+    print(f"Total travel time (hours): {total_time / 3600:.2f}")
+    print(f"Mean travel time (minutes): {mean_time / 60:.2f}")
+
+# ============================
+# معلومات المستخدمين
+# ============================
+def user_stats(df, city):
+    """Displays statistics on bikeshare users."""
+    print("\n=== User Info ===")
+    if df.empty:
+        print("No data available.")
+        return
+
+    print("\nCounts of user types:\n", df['User Type'].value_counts())
+
+    if 'Gender' in df.columns:
+        print("\nCounts of gender:\n", df['Gender'].value_counts(dropna=True))
+    else:
+        print("\nNo gender data available for", city.title())
+
+    if 'Birth Year' in df.columns:
+        birth_year = df['Birth Year'].dropna()
+        if not birth_year.empty:
+            print("\nEarliest year of birth:", int(birth_year.min()))
+            print("Most recent year of birth:", int(birth_year.max()))
+            print("Most common year of birth:", int(birth_year.mode()[0]))
+        else:
+            print("No valid birth year data available.")
+    else:
+        print("No birth year data available for", city.title())
+
+# ============================
+# عرض البيانات الخام
+# ============================
+def display_raw_data(df):
+    """Displays raw data 5 rows at a time upon user request."""
+    i = 0
+    while True:
+        show_data = input("\nDo you want to see 5 rows of raw data? (yes/no): ").lower()
+        if show_data != 'yes':
+            break
+        print(df.iloc[i:i+5])
+        i += 5
+        if i >= len(df):
+            print("No more data to display.")
+            break
+
+# ============================
+# البرنامج الرئيسي
+# ============================
+def main():
+    print("Hello! Let's explore US bikeshare data!")
+
+    city = get_city()
+    month = get_month()
+    day = get_day()
+
+    df = load_data(city, month, day)
+    if df is None:
+        return
+
+    time_stats(df)
+    station_stats(df)
+    trip_duration_stats(df)
+    user_stats(df, city)
+    display_raw_data(df)
+
+    print("\nThank you for exploring bikeshare data!")
+
+if __name__ == "__main__":
+    main()
