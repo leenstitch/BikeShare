@@ -8,6 +8,7 @@ This project uses Python to explore data related to bike share systems for three
 2. Download the project files from GitHub.
 3. Open a terminal in the project directory.
 4. Run the main script:
+ python bikeshare.py
 5. Follow the prompts to explore bike share data.
 
 ## Files
