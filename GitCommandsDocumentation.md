@@ -1,7 +1,7 @@
 \# Git Commands Documentation
 
 #GitHub Profile GitHub Profile:
-\[https://github.com/leenstitch](https://github.com/leenstitch)
+\[https://github.com/leenstitch]
 
 \-\--
 
